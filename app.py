@@ -4,7 +4,7 @@ import librosa
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import StandardScaler
 
-# Load the trained LSTM model
+# Load the trained LSTM model and the scaler used during training
 model = load_model('disease_detection_model.h5')
 
 # Define feature extraction functions
@@ -12,7 +12,7 @@ def extract_features(file_path):
     y, sr = librosa.load(file_path, sr=None)
     jitter = compute_jitter(y, sr)
     shimmer = compute_shimmer(y, sr)
-    # Additional features (replace with actual feature extraction)
+    # Placeholder for additional features (replace with actual implementation)
     features = [jitter, shimmer, np.random.random(), np.random.random(), np.random.random()]
     return np.array(features)
 
@@ -25,8 +25,8 @@ def compute_shimmer(y, sr):
     return np.random.random()
 
 # Streamlit UI
-st.title('Parkinson\'s Disease Detection from Voice')
-st.write('Upload a voice recording to analyze for potential Parkinson\'s disease indicators.')
+st.title("Parkinson's Disease Detection from Voice")
+st.write("Upload a voice recording to analyze for potential Parkinson's disease indicators.")
 
 # Upload file
 uploaded_file = st.file_uploader("Upload your voice recording", type=["wav", "mp3"])
@@ -42,12 +42,13 @@ if uploaded_file is not None:
     # Extract features from the audio file
     features = extract_features('temp_audio.wav')
 
-    # Standardize the features using a pre-fit scaler (fit during training)
+    # Standardize the features
+    # Note: Replace this with loading the scaler used during training, if available
     scaler = StandardScaler()
-    features_scaled = scaler.fit_transform(features.reshape(1, -1))
+    features_scaled = scaler.fit_transform(features.reshape(1, -1))  # Use the saved scaler for consistency
 
-    # Reshape for LSTM model
-    features_scaled_reshaped = features_scaled.reshape(1, 1, -1)  # (num_samples, num_timesteps, num_features)
+    # Reshape for LSTM model (1 sample, 1 timestep, num_features)
+    features_scaled_reshaped = features_scaled.reshape(1, 1, -1).astype('float32')
 
     # Make prediction
     prediction = model.predict(features_scaled_reshaped)
