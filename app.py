@@ -48,8 +48,10 @@ if uploaded_file is not None:
     features_scaled = scaler.fit_transform(features.reshape(1, -1))  # Use the saved scaler for consistency
     st.write(f'Scaled Features: {features_scaled}')
 
-    # Reshape for LSTM model (1 sample, 1 timestep, num_features)
-    features_scaled_reshaped = features_scaled.reshape(1, 1, -1).astype('float32')
+    # Ensure that the reshaped data matches the LSTM input shape
+    num_timesteps = 1  # or the number of timesteps used during training
+    num_features = features_scaled.shape[1]  # Number of features
+    features_scaled_reshaped = features_scaled.reshape(1, num_timesteps, num_features).astype('float32')
     st.write(f'Reshaped Features: {features_scaled_reshaped.shape}')
 
     # Make prediction
