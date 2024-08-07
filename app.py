@@ -8,8 +8,8 @@ from sklearn.preprocessing import StandardScaler
 model = load_model('disease_detection_model.h5')
 
 # Print model summary to verify input shape
-st.write("Model Summary:")
-model.summary(print_fn=lambda x: st.write(x))  # Print model summary in Streamlit
+#st.write("Model Summary:")
+#model.summary(print_fn=lambda x: st.write(x))  # Print model summary in Streamlit
 
 # Define feature extraction functions
 def extract_features(file_path):
