@@ -25,7 +25,7 @@ def compute_shimmer(y, sr):
     return np.random.random()
 
 # Streamlit UI
-st.title("Parkinson's Disease Detection from Voice")
+st.title("Disease Detection from Voice")
 st.write("Upload a voice recording to analyze for potential Parkinson's disease indicators.")
 
 # Upload file
@@ -46,7 +46,7 @@ if uploaded_file is not None:
     # Standardize the features
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(features.reshape(1, -1))  # Use the saved scaler for consistency
-    st.write(f'Scaled Features: {features_scaled}')
+    #st.write(f'Scaled Features: {features_scaled}')
 
     # Ensure that the reshaped data matches the LSTM input shape
     num_timesteps = 1  # Replace with the actual number of timesteps used during training
