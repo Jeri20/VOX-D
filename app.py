@@ -26,7 +26,7 @@ def compute_shimmer(y, sr):
 
 # Streamlit UI
 st.title("Disease Detection from Voice")
-st.write("Upload a voice recording to analyze for potential Parkinson's disease indicators.")
+st.write("Upload a voice recording to analyze for potential disease indicators.")
 
 # Upload file
 uploaded_file = st.file_uploader("Upload your voice recording", type=["wav", "mp3"])
