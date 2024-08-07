@@ -1,129 +1,103 @@
 import streamlit as st
 import numpy as np
 import librosa
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D, Flatten
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 import os
 import glob
 
-# Function to extract features from local audio files
-def extract_features(file_path, label):
-    y, sr = librosa.load(file_path, sr=None)
-    mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-    features = np.mean(mfccs.T, axis=0)
-    return features, label
+# Load audio files
+def load_audio_files(path):
+    audio_files = glob.glob(os.path.join(path, '*.wav'))
+    return audio_files
 
-# Path to the directories
-laryngoze_dir = './Laryngozele/'
-normal_dir = './Normal/'
+# Extract features from audio files
+def extract_features(audio_files):
+    X = []
+    for file in audio_files:
+        y, sr = librosa.load(file, sr=None)
+        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+        mfccs = np.mean(mfccs.T, axis=0)
+        X.append(mfccs)
+    return np.array(X)
 
-# Collecting file paths
-laryngoze_files = glob.glob(os.path.join(laryngoze_dir, '*.wav'))
-normal_files = glob.glob(os.path.join(normal_dir, '*.wav'))
-
-# Extract features for all audio files
-X = []
-y = []
-
-for file_path in laryngoze_files:
-    features, label = extract_features(file_path, 0)
-    X.append(features)
-    y.append(label)
-
-for file_path in normal_files:
-    features, label = extract_features(file_path, 1)
-    X.append(features)
-    y.append(label)
-
-# Convert to numpy arrays
-X = np.array(X)
-y = np.array(y)
-
-# Feature scaling
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-# Split the data
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
-
-# Reshape for LSTM and CNN
-X_train_lstm = X_train.reshape(X_train.shape[0], 1, X_train.shape[1])
-X_test_lstm = X_test.reshape(X_test.shape[0], 1, X_test.shape[1])
-
-# Train LSTM model
-def train_lstm(X_train, y_train):
+# Create LSTM model
+def create_lstm_model(input_shape):
     model = Sequential()
-    model.add(LSTM(64, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
+    model.add(LSTM(64, return_sequences=True, input_shape=input_shape))
     model.add(LSTM(32, return_sequences=False))
     model.add(Dense(1, activation='sigmoid'))
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    model.fit(X_train, y_train, epochs=20, batch_size=32, validation_split=0.1)
-    model.save('lstm_model.h5')
     return model
 
-# Train CNN model
-def train_cnn(X_train, y_train):
+# Create CNN model
+def create_cnn_model(input_shape):
     model = Sequential()
-    model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])))
+    model.add(Conv1D(64, kernel_size=3, activation='relu', input_shape=input_shape))
+    model.add(MaxPooling1D(pool_size=2))
+    model.add(Conv1D(32, kernel_size=3, activation='relu'))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Flatten())
-    model.add(Dense(32, activation='relu'))
     model.add(Dense(1, activation='sigmoid'))
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    model.fit(X_train, y_train, epochs=20, batch_size=32, validation_split=0.1)
-    model.save('cnn_model.h5')
     return model
 
 # Train SVM model
 def train_svm(X_train, y_train):
-    model = SVC(kernel='linear', probability=True)
-    model.fit(X_train, y_train)
-    return model
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    svm_model = SVC(kernel='linear', probability=True)
+    svm_model.fit(X_train_scaled, y_train)
+    return svm_model, scaler
 
-# Train the models
-lstm_model = train_lstm(X_train_lstm, y_train)
-cnn_model = train_cnn(X_train_lstm, y_train)
-svm_model = train_svm(X_train, y_train)
+# Load and preprocess data
+audio_path = 'Laryngozele'  # Replace with the correct path to your audio files
+audio_files = load_audio_files(audio_path)
+X = extract_features(audio_files)
+y = np.array([0 if 'a' in f else 1 for f in audio_files])  # Replace with your labeling logic
 
-# Streamlit UI
-st.title("Voice Disorder Detection")
-st.write("Upload a voice recording to analyze for potential voice disorders.")
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Upload file
-uploaded_file = st.file_uploader("Upload your voice recording", type=["wav", "mp3"])
+# Reshape data for LSTM and CNN
+X_train_lstm = X_train.reshape((X_train.shape[0], 1, X_train.shape[1]))
+X_test_lstm = X_test.reshape((X_test.shape[0], 1, X_test.shape[1]))
+X_train_cnn = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
+X_test_cnn = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
+
+# Train models
+lstm_model = create_lstm_model((1, X_train.shape[1]))
+lstm_model.fit(X_train_lstm, y_train, epochs=20, batch_size=32, validation_split=0.1)
+
+cnn_model = create_cnn_model((X_train.shape[1], 1))
+cnn_model.fit(X_train_cnn, y_train, epochs=20, batch_size=32, validation_split=0.1)
+
+svm_model, scaler = train_svm(X_train, y_train)
+
+# Model selection
+model_choice = st.selectbox("Choose Model", ["LSTM", "CNN", "SVM"])
+
+# Upload audio file
+uploaded_file = st.file_uploader("Upload an audio file", type=["wav"])
 
 if uploaded_file is not None:
-    # Display audio player
-    st.audio(uploaded_file, format='audio/wav')
-
-    # Save the uploaded file temporarily
-    with open('temp_audio.wav', 'wb') as f:
-        f.write(uploaded_file.getbuffer())
-
-    # Extract features from the audio file
-    y, sr = librosa.load('temp_audio.wav', sr=None)
+    y, sr = librosa.load(uploaded_file, sr=None)
     mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-    features = np.mean(mfccs.T, axis=0)
-    features_scaled = scaler.transform(features.reshape(1, -1))
-    features_scaled_reshaped = features_scaled.reshape(1, 1, features_scaled.shape[1])
-
-    # Predict with LSTM model
-    lstm_prediction = lstm_model.predict(features_scaled_reshaped)
-    lstm_disease_status = 'Voice Disorder Detected' if lstm_prediction[0][0] > 0.5 else 'No Voice Disorder Detected'
-    st.write(f'LSTM Prediction: **{lstm_disease_status}**')
-
-    # Predict with CNN model
-    cnn_prediction = cnn_model.predict(features_scaled_reshaped)
-    cnn_disease_status = 'Voice Disorder Detected' if cnn_prediction[0][0] > 0.5 else 'No Voice Disorder Detected'
-    st.write(f'CNN Prediction: **{cnn_disease_status}**')
-
-    # Predict with SVM model
-    svm_prediction = svm_model.predict(features_scaled)
-    svm_disease_status = 'Voice Disorder Detected' if svm_prediction[0] == 1 else 'No Voice Disorder Detected'
-    st.write(f'SVM Prediction: **{svm_disease_status}**')
-
-    os.remove('temp_audio.wav')
+    mfccs = np.mean(mfccs.T, axis=0).reshape(1, -1)
+    
+    if model_choice == "LSTM":
+        mfccs_lstm = mfccs.reshape((1, 1, mfccs.shape[1]))
+        prediction = lstm_model.predict(mfccs_lstm)
+        st.write("Prediction (LSTM):", "Laryngozele" if prediction[0][0] < 0.5 else "Normal")
+    elif model_choice == "CNN":
+        mfccs_cnn = mfccs.reshape((1, mfccs.shape[1], 1))
+        prediction = cnn_model.predict(mfccs_cnn)
+        st.write("Prediction (CNN):", "Laryngozele" if prediction[0][0] < 0.5 else "Normal")
+    elif model_choice == "SVM":
+        mfccs_scaled = scaler.transform(mfccs)
+        prediction = svm_model.predict(mfccs_scaled)
+        st.write("Prediction (SVM):", "Laryngozele" if prediction[0] == 0 else "Normal")
