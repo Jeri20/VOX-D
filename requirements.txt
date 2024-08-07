@@ -1,5 +1,5 @@
 streamlit
-numpy
 librosa
-scikit-learn
+numpy
 tensorflow
+scikit-learn
