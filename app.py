@@ -7,21 +7,21 @@ from sklearn.preprocessing import StandardScaler
 # Load the trained LSTM model
 model = load_model('disease_detection_model.h5')
 
+# Print model summary to verify input shape
+st.write("Model Summary:")
+model.summary(print_fn=lambda x: st.write(x))  # Print model summary in Streamlit
+
 # Define feature extraction functions
 def extract_features(file_path):
     y, sr = librosa.load(file_path, sr=None)
-    jitter = compute_jitter(y, sr)
-    shimmer = compute_shimmer(y, sr)
-    # Placeholder for additional features (replace with actual implementation)
-    features = [jitter, shimmer, np.random.random(), np.random.random(), np.random.random()]
+    # Ensure the extraction logic produces 16 features, not just 5
+    features = np.random.random(16)  # Placeholder for actual feature extraction
     return np.array(features)
 
 def compute_jitter(y, sr):
-    # Placeholder jitter calculation (replace with actual method)
     return np.random.random()
 
 def compute_shimmer(y, sr):
-    # Placeholder shimmer calculation (replace with actual method)
     return np.random.random()
 
 # Streamlit UI
@@ -49,7 +49,7 @@ if uploaded_file is not None:
     st.write(f'Scaled Features: {features_scaled}')
 
     # Ensure that the reshaped data matches the LSTM input shape
-    num_timesteps = 1  # or the number of timesteps used during training
+    num_timesteps = 1  # Replace with the actual number of timesteps used during training
     num_features = features_scaled.shape[1]  # Number of features
     features_scaled_reshaped = features_scaled.reshape(1, num_timesteps, num_features).astype('float32')
     st.write(f'Reshaped Features: {features_scaled_reshaped.shape}')
