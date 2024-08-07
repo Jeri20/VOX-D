@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import librosa
-from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D, Flatten
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
@@ -58,7 +58,9 @@ def train_svm(X_train, y_train):
 audio_path = 'Laryngozele'  # Replace with the correct path to your audio files
 audio_files = load_audio_files(audio_path)
 X = extract_features(audio_files)
-y = np.array([0 if 'a' in f else 1 for f in audio_files])  # Replace with your labeling logic
+
+# Labeling logic: assuming 'a' in filename means laryngozele and 'n' means normal
+y = np.array([0 if 'a' in f else 1 for f in audio_files])  # Adjust as needed
 
 # Split data into training and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
