@@ -4,7 +4,7 @@ import librosa
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import StandardScaler
 
-# Load the trained LSTM model and the scaler used during training
+# Load the trained LSTM model
 model = load_model('disease_detection_model.h5')
 
 # Define feature extraction functions
@@ -41,18 +41,22 @@ if uploaded_file is not None:
 
     # Extract features from the audio file
     features = extract_features('temp_audio.wav')
+    st.write(f'Extracted Features: {features}')
 
     # Standardize the features
-    # Note: Replace this with loading the scaler used during training, if available
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(features.reshape(1, -1))  # Use the saved scaler for consistency
+    st.write(f'Scaled Features: {features_scaled}')
 
     # Reshape for LSTM model (1 sample, 1 timestep, num_features)
     features_scaled_reshaped = features_scaled.reshape(1, 1, -1).astype('float32')
+    st.write(f'Reshaped Features: {features_scaled_reshaped.shape}')
 
     # Make prediction
-    prediction = model.predict(features_scaled_reshaped)
-    disease_status = 'Parkinson\'s Disease Detected' if prediction > 0.5 else 'No Parkinson\'s Disease Detected'
-
-    # Display the result
-    st.write(f'Prediction: **{disease_status}**')
+    try:
+        prediction = model.predict(features_scaled_reshaped)
+        st.write(f'Raw Prediction Output: {prediction}')
+        disease_status = 'Parkinson\'s Disease Detected' if prediction > 0.5 else 'No Parkinson\'s Disease Detected'
+        st.write(f'Prediction: **{disease_status}**')
+    except Exception as e:
+        st.error(f'Error making prediction: {e}')
